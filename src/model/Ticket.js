@@ -5,7 +5,8 @@ const ticketSchema = new mongoose.Schema({
     raisedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
+        index: true
     },
     ticketId: {
         type: String,
@@ -15,7 +16,7 @@ const ticketSchema = new mongoose.Schema({
     },
     title: {
         type: String,
-        required:true
+        required: true
     },
     description: {
         type: String,
@@ -24,14 +25,16 @@ const ticketSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['open', 'in-progress', 'done'],
-        default: 'open'
+        default: 'open',
+        index: true
     },
     priority: {
         type: String,
         enum: ['low', 'medium', 'high']
     },
     category: {
-        type: String
+        type: String,
+        index: true
     },
     assignedTo: {
         type: String

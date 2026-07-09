@@ -9,6 +9,14 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+const escapeHtml = (str = '') => String(str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+}[c]));
+
 const sendTicketEmail = async (ticket) => {
     const recipientEmail = emailRoutes[ticket.category];
 
@@ -24,9 +32,9 @@ const sendTicketEmail = async (ticket) => {
         html: `
             <h2>New Ticket Assigned</h2>
             <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
-            <p><strong>Title:</strong> ${ticket.title}</p>
-            <p><strong>Description:</strong> ${ticket.description}</p>
-            <p><strong>Category:</strong> ${ticket.category}</p>
+            <p><strong>Title:</strong> ${escapeHtml(ticket.title)}</p>
+            <p><strong>Description:</strong> ${escapeHtml(ticket.description)}</p>
+            <p><strong>Category:</strong> ${escapeHtml(ticket.category)}</p>
             <p>Please review and resolve this issue at the earliest opportunity.</p>
         `
     };
@@ -41,12 +49,12 @@ const sendUserConfirmationEmail = async (ticket, userEmail, userName) => {
         to: userEmail,
         subject: `We received your request — Ticket #${ticket.ticketId}`,
         html: `
-            <h2>Thank you for reaching out, ${userName}!</h2>
+            <h2>Thank you for reaching out, ${escapeHtml(userName)}!</h2>
             <p>We have received your request and our team is looking into it.</p>
             
             <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
-            <p><strong>Title:</strong> ${ticket.title}</p>
-            <p><strong>Description:</strong> ${ticket.description}</p>
+            <p><strong>Title:</strong> ${escapeHtml(ticket.title)}</p>
+            <p><strong>Description:</strong> ${escapeHtml(ticket.description)}</p>
             <p><strong>Status:</strong> Open</p>
 
             <p>If you need immediate assistance, please contact our helpline at: <strong>${process.env.EMAIL_USER}</strong></p>
@@ -67,12 +75,12 @@ const sendResolutionEmail = async (ticket, userEmail, userName) => {
         to: userEmail,
         subject: `Your issue has been resolved — Ticket #${ticket.ticketId}`,
         html: `
-            <h2>Great news, ${userName}!</h2>
+            <h2>Great news, ${escapeHtml(userName)}!</h2>
             <p>Your ticket has been resolved by our support team.</p>
             
             <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
-            <p><strong>Title:</strong> ${ticket.title}</p>
-            <p><strong>Description:</strong> ${ticket.description}</p>
+            <p><strong>Title:</strong> ${escapeHtml(ticket.title)}</p>
+            <p><strong>Description:</strong> ${escapeHtml(ticket.description)}</p>
             <p><strong>Status:</strong> Resolved</p>
 
             <p>We hope your issue has been fully addressed. If you still face any problems, feel free to raise a new ticket or contact us at: <strong>${process.env.EMAIL_USER}</strong></p>

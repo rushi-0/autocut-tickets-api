@@ -1,9 +1,11 @@
-const errorHandler = (err,req,res,next) =>{
-    console.log(err.message);
+const errorHandler = (err, req, res, next) => {
+    console.error(err);
 
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
         success: false,
-        message: err.message
+        message: process.env.NODE_ENV === 'production'
+            ? 'Something went wrong, please try again later'
+            : err.message
     });
 };
 

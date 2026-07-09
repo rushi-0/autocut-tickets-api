@@ -1,21 +1,37 @@
 const Ticket = require('../model/Ticket');
 const User = require('../model/User');
-const { uploadFileToS3, uploadMetadataToS3 } = require('../utils/s3Uploader');
+const { uploadFileToS3, uploadMetadataToS3, getAttachmentUrl } = require('../utils/s3Uploader');
 const { sendTicketEmail, sendUserConfirmationEmail, sendResolutionEmail } = require('../utils/mailer');
 const classifyTicket = require('../utils/aiClassifier');
 
-exports.getAllTickets = async (req,res) =>{
-    try{
-        const tickets = await Ticket.find({});
+const isStaffOrAdmin = (user) => user.role === 'staff' || user.role === 'admin';
+
+exports.getAllTickets = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+
+        // staff/admin see everything; regular users only see their own
+        const filter = isStaffOrAdmin(req.user) ? {} : { raisedBy: req.user.id };
+
+        const tickets = await Ticket.find(filter)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        const total = await Ticket.countDocuments(filter);
 
         res.status(200).json({
-            tickets
+            tickets,
+            page,
+            totalPages: Math.ceil(total / limit),
+            totalTickets: total
         });
     }
-    catch(error){
-        res.status(500).json({ 
+    catch (error) {
+        res.status(500).json({
             message: 'Server error',
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -29,9 +45,14 @@ exports.getTicketById = async (req, res) => {
                 message: 'Ticket not found' });
         }
 
+        const ticketObj = ticket.toObject();
+        if (ticketObj.attachments) {
+            ticketObj.attachments = await getAttachmentUrl(ticketObj.attachments);
+        }
+
         res.status(200).json({
             message:'ticket found',
-            ticket
+            ticket: ticketObj
         })
     } catch (error) {
         res.status(500).json({ 
@@ -132,11 +153,7 @@ exports.updateTicket = async (req, res) => {
     try {
         const { status, priority, assignedTo } = req.body;
 
-        const ticket = await Ticket.findOneAndUpdate(
-            { ticketId: req.params.id },
-            { status, priority, assignedTo },
-            { new: true, runValidators: true }
-        );
+        const ticket = await Ticket.findOne({ ticketId: req.params.id });
 
         if (!ticket) {
             return res.status(404).json({
@@ -144,12 +161,47 @@ exports.updateTicket = async (req, res) => {
             });
         }
 
+        // only support staff/admins can update ticket status — owner cannot self-resolve
+if (!isStaffOrAdmin(req.user)) {
+    return res.status(403).json({
+        message: 'Only support staff or admins can update ticket status'
+    });
+}
+
+        ticket.status = status ?? ticket.status;
+        ticket.priority = priority ?? ticket.priority;
+        ticket.assignedTo = assignedTo ?? ticket.assignedTo;
+        await ticket.save();
+
         if (status === 'done') {
-            const user = await User.findById(ticket.raisedBy);
-            if (user) {
-                sendResolutionEmail(ticket, user.email, user.name).catch(err => {
-                    console.error('Resolution email failed:', err.message);
-                });
+            if (ticket.parentTicketId) {
+                // this is a child ticket — only notify once ALL siblings are done
+                const siblings = await Ticket.find({ parentTicketId: ticket.parentTicketId });
+                const allDone = siblings.every(sibling => sibling.status === 'done');
+
+                if (allDone) {
+                    const parent = await Ticket.findOne({ ticketId: ticket.parentTicketId });
+
+                    if (parent && parent.status !== 'done') {
+                        parent.status = 'done';
+                        await parent.save();
+
+                        const user = await User.findById(parent.raisedBy);
+                        if (user) {
+                            sendResolutionEmail(parent, user.email, user.name).catch(err => {
+                                console.error('Resolution email failed:', err.message);
+                            });
+                        }
+                    }
+                }
+            } else {
+                // standalone ticket, or the parent itself was updated directly
+                const user = await User.findById(ticket.raisedBy);
+                if (user) {
+                    sendResolutionEmail(ticket, user.email, user.name).catch(err => {
+                        console.error('Resolution email failed:', err.message);
+                    });
+                }
             }
         }
 
@@ -168,12 +220,21 @@ exports.updateTicket = async (req, res) => {
 
 exports.deleteTicket = async (req, res) => {
     try {
-const ticket = await Ticket.findOneAndDelete({ ticketId: req.params.id });
+        const ticket = await Ticket.findOne({ ticketId: req.params.id });
 
         if (!ticket) {
             return res.status(404).json({ 
                 message: 'Ticket not found' });
         }
+
+        const isOwner = ticket.raisedBy.toString() === req.user.id;
+        if (!isOwner && !isStaffOrAdmin(req.user)) {
+            return res.status(403).json({
+                message: 'Not authorized to delete this ticket'
+            });
+        }
+
+        await ticket.deleteOne();
 
         res.status(200).json({ 
             message: 'Ticket deleted successfully' });
