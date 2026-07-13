@@ -14,8 +14,8 @@ const sendTicketEmail = async (ticket) => {
         return;
     }
 
-    await resend.emails.send({
-        from: 'Autocut Support <onboarding@resend.dev>', // Resend's default test sender
+    const { data, error } = await resend.emails.send({
+        from: 'Autocut Support <onboarding@resend.dev>',
         to: recipientEmail,
         subject: `New Ticket: [${ticket.ticketId}] - ${ticket.category}`,
         html: `
@@ -26,11 +26,17 @@ const sendTicketEmail = async (ticket) => {
             <p><strong>Category:</strong> ${escapeHtml(ticket.category)}</p>
         `
     });
+
+    if (error) {
+        console.error(`Email notification failed for ${recipientEmail}:`, error.message);
+        return;
+    }
+
     console.log(`Email sent to ${recipientEmail} for ticket ${ticket.ticketId}`);
 };
 
 const sendUserConfirmationEmail = async (ticket, userEmail, userName) => {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
         from: 'Autocut Support <onboarding@resend.dev>',
         to: userEmail,
         subject: `We received your request — Ticket #${ticket.ticketId}`,
@@ -42,11 +48,17 @@ const sendUserConfirmationEmail = async (ticket, userEmail, userName) => {
             <p><strong>Status:</strong> Open</p>
         `
     });
+
+    if (error) {
+        console.error(`Confirmation email failed for ${userEmail}:`, error.message);
+        return;
+    }
+
     console.log(`Confirmation email sent to ${userEmail} for ticket ${ticket.ticketId}`);
 };
 
 const sendResolutionEmail = async (ticket, userEmail, userName) => {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
         from: 'Autocut Support <onboarding@resend.dev>',
         to: userEmail,
         subject: `Your issue has been resolved — Ticket #${ticket.ticketId}`,
@@ -57,6 +69,12 @@ const sendResolutionEmail = async (ticket, userEmail, userName) => {
             <p><strong>Status:</strong> Resolved</p>
         `
     });
+
+    if (error) {
+        console.error(`Resolution email failed for ${userEmail}:`, error.message);
+        return;
+    }
+
     console.log(`Resolution email sent to ${userEmail} for ticket ${ticket.ticketId}`);
 };
 
