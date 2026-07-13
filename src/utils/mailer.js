@@ -15,7 +15,7 @@ const sendTicketEmail = async (ticket) => {
     }
 
     const { data, error } = await resend.emails.send({
-        from: 'Autocut Support <onboarding@resend.dev>',
+        from: 'Autocut Support <support@autocutsupport.online>',
         to: recipientEmail,
         subject: `New Ticket: [${ticket.ticketId}] - ${ticket.category}`,
         html: `
@@ -37,7 +37,7 @@ const sendTicketEmail = async (ticket) => {
 
 const sendUserConfirmationEmail = async (ticket, userEmail, userName) => {
     const { data, error } = await resend.emails.send({
-        from: 'Autocut Support <onboarding@resend.dev>',
+        from: 'Autocut Support <support@autocutsupport.online>',
         to: userEmail,
         subject: `We received your request — Ticket #${ticket.ticketId}`,
         html: `
@@ -59,7 +59,7 @@ const sendUserConfirmationEmail = async (ticket, userEmail, userName) => {
 
 const sendResolutionEmail = async (ticket, userEmail, userName) => {
     const { data, error } = await resend.emails.send({
-        from: 'Autocut Support <onboarding@resend.dev>',
+        from: 'Autocut Support <support@autocutsupport.online>',
         to: userEmail,
         subject: `Your issue has been resolved — Ticket #${ticket.ticketId}`,
         html: `
