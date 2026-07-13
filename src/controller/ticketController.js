@@ -65,6 +65,20 @@ exports.createTicket = async (req, res) => {
     try {
         const { title, description } = req.body;
 
+                const recentDuplicate = await Ticket.findOne({
+            raisedBy: req.user.id,
+            title,
+            description,
+            createdAt: { $gte: new Date(Date.now() - 30000) } // last 30 sec
+        });
+
+        if (recentDuplicate) {
+            return res.status(409).json({
+                message: 'A similar ticket was just submitted. Please wait before resubmitting.',
+                ticket: recentDuplicate
+            });
+        }
+
         const categories = await classifyTicket(description);
 
         let attachmentUrl = null;

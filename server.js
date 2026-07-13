@@ -10,9 +10,11 @@ const app = express();
 
 app.use(express.json());
 
+app.set('trust proxy', 1);
+
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // max 100 requests per 15 minutes per IP
+    windowMs: 15 * 60 * 1000, 
+    max: 100, 
     message: {
         success: false,
         message: 'Too many requests, please try again after 15 minutes'
