@@ -1,14 +1,21 @@
 const nodemailer = require('nodemailer');
 const emailRoutes = require('../emailRoutes');
 
+const dns = require('dns');
+
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
     secure: false,
-    family: 4, // force IPv4, avoids the IPv6 unreachable issue on some hosts
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
+    },
+    lookup: (hostname, options, callback) => {
+        dns.resolve4(hostname, (err, addresses) => {
+            if (err) return callback(err);
+            callback(null, addresses[0], 4);
+        });
     }
 });
 
