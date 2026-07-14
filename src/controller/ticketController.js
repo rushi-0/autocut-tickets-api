@@ -182,11 +182,11 @@ exports.updateTicket = async (req, res) => {
             });
         }
 
-if (!isStaffOrAdmin(req.user)) {
-    return res.status(403).json({
-        message: 'Only support staff or admins can update ticket status'
-    });
-}
+        if (!isStaffOrAdmin(req.user)) {
+            return res.status(403).json({
+                message: 'Only support staff or admins can update ticket status'
+            });
+        }
 
         ticket.status = status ?? ticket.status;
         ticket.priority = priority ?? ticket.priority;
