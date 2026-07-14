@@ -11,7 +11,6 @@ exports.getAllTickets = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
 
-        // staff/admin see everything; regular users only see their own
         const filter = isStaffOrAdmin(req.user) ? {} : { raisedBy: req.user.id };
 
         const tickets = await Ticket.find(filter)
@@ -77,7 +76,7 @@ exports.createTicket = async (req, res) => {
             raisedBy: req.user.id,
             title,
             description,
-            createdAt: { $gte: new Date(Date.now() - 30000) } // last 30 sec
+            createdAt: { $gte: new Date(Date.now() - 30000) } 
         });
 
         if (recentDuplicate) {
@@ -183,7 +182,6 @@ exports.updateTicket = async (req, res) => {
             });
         }
 
-        // only support staff/admins can update ticket status — owner cannot self-resolve
 if (!isStaffOrAdmin(req.user)) {
     return res.status(403).json({
         message: 'Only support staff or admins can update ticket status'
@@ -197,7 +195,6 @@ if (!isStaffOrAdmin(req.user)) {
 
         if (status === 'done') {
             if (ticket.parentTicketId) {
-                // this is a child ticket — only notify once ALL siblings are done
                 const siblings = await Ticket.find({ parentTicketId: ticket.parentTicketId });
                 const allDone = siblings.every(sibling => sibling.status === 'done');
 
@@ -217,7 +214,6 @@ if (!isStaffOrAdmin(req.user)) {
                     }
                 }
             } else {
-                // standalone ticket, or the parent itself was updated directly
                 const user = await User.findById(ticket.raisedBy);
                 if (user) {
                     sendResolutionEmail(ticket, user.email, user.name).catch(err => {

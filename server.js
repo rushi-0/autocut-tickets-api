@@ -29,10 +29,10 @@ app.use(limiter);
 app.use('/api/tickets', ticketRouter);
 app.use('/api/auth', authRouter);
 
-app.use(errorHandler); // ✅ always last middleware
+app.use(errorHandler); 
 
 const startServer = async () => {
-    await connectDB();        // ✅ DB connects first
+    await connectDB();        
     app.listen(6000, () => {
         console.log('Server is running on port 6000');
     });

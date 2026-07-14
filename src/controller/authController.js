@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 
 const register = async (req, res) => {
   try {
-    // role is deliberately NOT read from req.body — prevents privilege escalation
     const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
