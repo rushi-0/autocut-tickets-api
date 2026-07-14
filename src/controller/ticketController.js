@@ -41,8 +41,16 @@ exports.getTicketById = async (req, res) => {
         const ticket = await Ticket.findOne({ ticketId: req.params.id });
 
         if (!ticket) {
-            return res.status(404).json({ 
-                message: 'Ticket not found' });
+            return res.status(404).json({
+                message: 'Ticket not found'
+            });
+        }
+
+        const isOwner = ticket.raisedBy.toString() === req.user.id;
+        if (!isOwner && !isStaffOrAdmin(req.user)) {
+            return res.status(403).json({
+                message: 'Not authorized to view this ticket'
+            });
         }
 
         const ticketObj = ticket.toObject();
@@ -51,12 +59,12 @@ exports.getTicketById = async (req, res) => {
         }
 
         res.status(200).json({
-            message:'ticket found',
+            message: 'ticket found',
             ticket: ticketObj
         })
     } catch (error) {
-        res.status(500).json({ 
-            message: 'Server error', 
+        res.status(500).json({
+            message: 'Server error',
             error: error.message });
     }
 };
