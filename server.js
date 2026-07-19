@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const connectDB = require('./src/config/db');
+const connectDB = require('./src/utils/db');
 const ticketRouter = require('./src/routes/ticketRoutes');
 const errorHandler = require('./src/middleware/errorHandler');
 const authRouter = require('./src/routes/authRouter');

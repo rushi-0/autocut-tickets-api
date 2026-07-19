@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Raise Ticket | Autocut Tickets</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Raise a Ticket</h1>
+          <div class="hint">Submit your issue for AI classification</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnLogout" class="btn danger" type="button">Logout</button>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="align-items:start;">
+      <div class="card">
+        <div class="grid">
+          <div>
+            <label for="title">Title</label>
+            <input id="title" type="text" placeholder="Short summary" />
+          </div>
+
+          <div>
+            <label for="description">Description</label>
+            <textarea id="description" placeholder="Describe what happened…"></textarea>
+          </div>
+
+          <div>
+            <label for="attachment">Attachment (optional)</label>
+            <input id="attachment" type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" />
+            <div class="hint" style="margin-top:6px">
+              Allowed: JPEG/PNG/PDF (max 5MB). Field name sent to backend is <b>attachment</b>.
+            </div>
+          </div>
+
+          <div>
+            <div class="actions">
+              <button id="btnCreate" class="btn primary" type="button">Create Ticket</button>
+              <span id="loading" class="hint" style="display:none">Submitting…</span>
+            </div>
+            <div id="msg" class="msg" style="margin-top:12px"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="grid">
+          <div>
+            <b>After creation</b>
+            <div class="hint" style="margin-top:8px">
+              You’ll see a success message. (If CORS is blocked, you’ll need backend CORS to be enabled.)
+            </div>
+          </div>
+          <div>
+            <button id="btnLoadMyTickets" class="btn" type="button">Load My Tickets</button>
+            <div id="list" class="hint" style="margin-top:10px">No data yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Token stored locally for authenticated API calls.</div>
+  </div>
+
+  <script type="module">
+    import { api } from './api.js';
+    import { clearToken, getToken, setMsg, requireAuth } from './app.js';
+
+    requireAuth('login.html');
+
+    const token = getToken();
+
+    const btnLogout = document.getElementById('btnLogout');
+    const btnCreate = document.getElementById('btnCreate');
+    const btnLoadMyTickets = document.getElementById('btnLoadMyTickets');
+
+    const loading = document.getElementById('loading');
+    const msg = document.getElementById('msg');
+    const list = document.getElementById('list');
+
+    btnLogout.addEventListener('click', () => {
+      clearToken();
+      window.location.href = 'login.html';
+    });
+
+    btnCreate.addEventListener('click', async () => {
+      setMsg(msg, { type: 'success', text: '' });
+
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const attachmentEl = document.getElementById('attachment');
+      const attachmentFile = attachmentEl.files && attachmentEl.files.length ? attachmentEl.files[0] : null;
+
+      if(!title || !description){
+        setMsg(msg, { type: 'error', text: 'Title and description are required.' });
+        return;
+      }
+
+      btnCreate.disabled = true;
+      loading.style.display = 'inline';
+
+      try{
+        const data = await api.createTicket({
+          token,
+          title,
+          description,
+          attachmentFile
+        });
+
+        const created = data?.ticket?.ticketId ? `Ticket: ${data.ticket.ticketId}` : 'Ticket created.';
+        setMsg(msg, { type: 'success', text: `${data?.message || 'Success'} ${created}` });
+
+        // reset form
+        document.getElementById('title').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('attachment').value = '';
+
+      }catch(err){
+        setMsg(msg, { type: 'error', text: err.message || 'Ticket creation failed.' });
+      }finally{
+        btnCreate.disabled = false;
+        loading.style.display = 'none';
+      }
+    });
+
+    btnLoadMyTickets.addEventListener('click', async () => {
+      list.textContent = 'Loading…';
+      try{
+        const data = await api.getTickets({ token, page: 1, limit: 10 });
+        const tickets = data?.tickets || [];
+        if(!tickets.length){
+          list.textContent = 'No tickets found.';
+          return;
+        }
+        list.innerHTML = tickets.map(t => `
+          <div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08)">
+            <b>${t.title}</b><div class="hint">ID: ${t.ticketId} · Category: ${t.category || '-'} · Status: ${t.status || '-'}</div>
+          </div>
+        `).join('');
+      }catch(err){
+        list.textContent = err.message || 'Failed to load tickets.';
+      }
+    });
+  </script>
+</body>
+</html>
+
