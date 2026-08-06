@@ -16,7 +16,7 @@
           <div class="hint">Create your account</div>
         </div>
       </div>
-      <a href="login.html" class="hint">Already have an account? Login</a>
+      <a href="index.html" class="hint">Already have an account? Login</a>
     </div>
 
     <div class="card" style="max-width: 560px; margin: 0 auto;">
@@ -80,7 +80,7 @@
         const data = await api.register({ name, email, password });
         setMsg(msg, { type: 'success', text: data?.message || 'Registered successfully.' });
         setTimeout(() => {
-          window.location.href = 'login.html';
+          window.location.href = 'index.html';
         }, 900);
       }catch(err){
         setMsg(msg, { type: 'error', text: err.message || 'Registration failed.' });
