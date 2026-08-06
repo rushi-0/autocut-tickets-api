@@ -12,7 +12,7 @@
       <div class="brand">
         <div class="logo" aria-hidden="true"></div>
         <div>
-          <h1>Autocut Tickets</h1>
+          <h1>Autocut Tickets</h1>  
           <div class="hint">Sign in to raise a ticket</div>
         </div>
       </div>
@@ -52,10 +52,6 @@
     const loading = document.getElementById('loading');
     const msg = document.getElementById('msg');
 
-    // If already logged in, skip to ticket page
-    if(getToken()){
-      window.location.href = 'raise-ticket.html';
-    }
 
     btn.addEventListener('click', async () => {
       setMsg(msg, { type: 'success', text: '' });

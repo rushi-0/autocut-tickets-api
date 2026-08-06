@@ -21,7 +21,7 @@ function setMsg(el, {type, text}){
   el.textContent = text;
 }
 
-function requireAuth(redirectToLogin = 'login.html'){
+function requireAuth(redirectToLogin = 'index.html'){
   const token = getToken();
   if(!token){
     window.location.href = redirectToLogin;

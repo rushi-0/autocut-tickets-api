@@ -77,7 +77,7 @@
     import { api } from './api.js';
     import { clearToken, getToken, setMsg, requireAuth } from './app.js';
 
-    requireAuth('login.html');
+    requireAuth('index.html');
 
     const token = getToken();
 
@@ -91,7 +91,7 @@
 
     btnLogout.addEventListener('click', () => {
       clearToken();
-      window.location.href = 'login.html';
+      window.location.href = 'index.html';
     });
 
     btnCreate.addEventListener('click', async () => {
