@@ -3,45 +3,73 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login | Autocut Tickets</title>
+  <title>Sign in | Autocut Tickets</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-          <h1>Autocut Tickets</h1>  
-          <div class="hint">Sign in to raise a ticket</div>
+  <div class="shell">
+    <div class="brand-panel">
+      <div class="brand-mark">
+        <span class="glyph" aria-hidden="true"></span>
+        Autocut
+      </div>
+
+      <div>
+        <div class="eyebrow">Live routing</div>
+        <h1 class="brand-headline">Every ticket lands where it <em>needs</em> to go.</h1>
+        <p class="brand-sub">Describe the problem in plain English. Autocut reads it, classifies it, and sends it straight to the right team — no queue, no triage meeting.</p>
+
+        <div class="tag-stack" aria-hidden="true">
+          <div class="route-tag t1">
+            <div class="tag-id">TCK-9F21</div>
+            <div class="tag-title">Payment failed at checkout</div>
+            <div class="tag-route">→ finance@company.com</div>
+          </div>
+          <div class="route-tag t2">
+            <div class="tag-id">TCK-9F22</div>
+            <div class="tag-title">Can't reset my password</div>
+            <div class="tag-route">→ accounts@company.com</div>
+          </div>
+          <div class="route-tag t3">
+            <div class="tag-id">TCK-9F23</div>
+            <div class="tag-title">App crashes on upload</div>
+            <div class="tag-route">→ engineering@company.com</div>
+          </div>
         </div>
       </div>
-      <a href="register.html" class="hint">Need an account? Register</a>
+
+      <div class="brand-foot">AI classification · AWS S3 attachments · JWT auth</div>
     </div>
 
-    <div class="card" style="max-width: 560px; margin: 0 auto;">
-      <div class="grid">
-        <div>
+    <div class="form-panel">
+      <div class="form-wrap">
+        <div class="form-head">
+          <div class="eyebrow">Access</div>
+          <h1>Sign in</h1>
+          <p>New here? <a href="register.html">Create an account</a></p>
+        </div>
+
+        <div class="field">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" />
         </div>
 
-        <div>
+        <div class="field">
           <label for="password">Password</label>
           <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" />
         </div>
 
-        <div>
+        <div class="field">
           <div class="actions">
-            <button id="btnLogin" class="btn primary" type="button">Login</button>
-            <span id="loading" class="hint" style="display:none">Please wait…</span>
+            <button id="btnLogin" class="btn primary block" type="button">Sign in</button>
           </div>
-          <div id="msg" class="msg" style="margin-top:12px"></div>
+          <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+            <span id="loading" class="hint" style="display:none">Signing in…</span>
+          </div>
+          <div id="msg" class="msg" style="margin-top:6px"></div>
         </div>
       </div>
     </div>
-
-    <div class="footer">After login, you’ll be redirected to ticket raising.</div>
   </div>
 
   <script type="module">
@@ -71,7 +99,7 @@
         const data = await api.login({ email, password });
         if(!data?.token) throw new Error('Token missing in response.');
         setToken(data.token);
-        setMsg(msg, { type: 'success', text: 'Login successful. Redirecting…' });
+        setMsg(msg, { type: 'success', text: 'Signed in. Redirecting…' });
         setTimeout(() => {
           window.location.href = 'raise-ticket.html';
         }, 700);
@@ -85,4 +113,3 @@
   </script>
 </body>
 </html>
-

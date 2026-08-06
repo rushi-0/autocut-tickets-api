@@ -31,4 +31,3 @@ function requireAuth(redirectToLogin = 'index.html'){
 }
 
 export { TOKEN_KEY, getToken, setToken, clearToken, setMsg, requireAuth };
-

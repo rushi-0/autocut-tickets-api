@@ -3,74 +3,66 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Raise Ticket | Autocut Tickets</title>
+  <title>Raise a ticket | Autocut Tickets</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-          <h1>Raise a Ticket</h1>
-          <div class="hint">Submit your issue for AI classification</div>
+  <div class="dash">
+    <div class="dash-top">
+      <div>
+        <div class="brand-mark">
+          <span class="glyph" aria-hidden="true"></span>
+          Autocut
         </div>
+        <h1>Raise a ticket</h1>
       </div>
-
-      <div class="actions">
-        <button id="btnLogout" class="btn danger" type="button">Logout</button>
-      </div>
+      <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
     </div>
 
-    <div class="grid cols-2" style="align-items:start;">
-      <div class="card">
-        <div class="grid">
-          <div>
-            <label for="title">Title</label>
-            <input id="title" type="text" placeholder="Short summary" />
-          </div>
+    <div class="dash-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Describe the issue</h2>
+          <span class="eyebrow">AI sorts this</span>
+        </div>
 
-          <div>
-            <label for="description">Description</label>
-            <textarea id="description" placeholder="Describe what happened…"></textarea>
-          </div>
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" type="text" placeholder="Short summary, e.g. Payment failed at checkout" />
+        </div>
 
-          <div>
-            <label for="attachment">Attachment (optional)</label>
-            <input id="attachment" type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" />
-            <div class="hint" style="margin-top:6px">
-              Allowed: JPEG/PNG/PDF (max 5MB). Field name sent to backend is <b>attachment</b>.
-            </div>
-          </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="What happened? Include steps, error messages, or anything that helps the team fix it fast."></textarea>
+        </div>
 
-          <div>
-            <div class="actions">
-              <button id="btnCreate" class="btn primary" type="button">Create Ticket</button>
-              <span id="loading" class="hint" style="display:none">Submitting…</span>
-            </div>
-            <div id="msg" class="msg" style="margin-top:12px"></div>
-          </div>
+        <div class="field">
+          <label for="attachment">Attachment (optional)</label>
+          <input id="attachment" type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" />
+          <div class="hint" style="margin-top:6px">JPEG, PNG or PDF · 5MB max</div>
+        </div>
 
+        <div class="field" style="margin-bottom:0">
+          <div class="actions">
+            <button id="btnCreate" class="btn primary" type="button">Submit ticket</button>
+            <span id="loading" class="hint" style="display:none">Submitting…</span>
+          </div>
+          <div id="msg" class="msg" style="margin-top:12px"></div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="grid">
-          <div>
-            <b>After creation</b>
-            <div class="hint" style="margin-top:8px">
-              You’ll see a success message. (If CORS is blocked, you’ll need backend CORS to be enabled.)
-            </div>
-          </div>
-          <div>
-            <button id="btnLoadMyTickets" class="btn" type="button">Load My Tickets</button>
-            <div id="list" class="hint" style="margin-top:10px">No data yet.</div>
-          </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Your tickets</h2>
+          <button id="btnLoadMyTickets" class="btn ghost" type="button" style="padding:8px 12px; font-size:12.5px;">Refresh</button>
+        </div>
+        <div id="list" class="manifest">
+          <div class="manifest-empty">No tickets loaded yet — hit refresh.</div>
         </div>
       </div>
     </div>
 
-    <div class="footer">Token stored locally for authenticated API calls.</div>
+    <div class="footer-note">Signed-in session · token stored locally for authenticated requests</div>
   </div>
 
   <script type="module">
@@ -118,8 +110,8 @@
           attachmentFile
         });
 
-        const created = data?.ticket?.ticketId ? `Ticket: ${data.ticket.ticketId}` : 'Ticket created.';
-        setMsg(msg, { type: 'success', text: `${data?.message || 'Success'} ${created}` });
+        const created = data?.ticket?.ticketId ? `Ticket ${data.ticket.ticketId} created.` : 'Ticket created.';
+        setMsg(msg, { type: 'success', text: created });
 
         // reset form
         document.getElementById('title').value = '';
@@ -134,25 +126,35 @@
       }
     });
 
+    function escapeHtml(str){
+      return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
     btnLoadMyTickets.addEventListener('click', async () => {
-      list.textContent = 'Loading…';
+      list.innerHTML = '<div class="manifest-empty">Loading…</div>';
       try{
         const data = await api.getTickets({ token, page: 1, limit: 10 });
         const tickets = data?.tickets || [];
         if(!tickets.length){
-          list.textContent = 'No tickets found.';
+          list.innerHTML = '<div class="manifest-empty">No tickets found. Submit one on the left.</div>';
           return;
         }
         list.innerHTML = tickets.map(t => `
-          <div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08)">
-            <b>${t.title}</b><div class="hint">ID: ${t.ticketId} · Category: ${t.category || '-'} · Status: ${t.status || '-'}</div>
+          <div class="manifest-row">
+            <div class="m-id">${escapeHtml(t.ticketId)}</div>
+            <div class="m-body">
+              <div class="m-title">${escapeHtml(t.title)}</div>
+              <div class="m-meta">${escapeHtml(t.category || 'Unclassified')}</div>
+            </div>
+            <span class="status-chip">${escapeHtml(t.status || 'open')}</span>
           </div>
         `).join('');
       }catch(err){
-        list.textContent = err.message || 'Failed to load tickets.';
+        list.innerHTML = `<div class="manifest-empty">${escapeHtml(err.message || 'Failed to load tickets.')}</div>`;
       }
     });
   </script>
 </body>
 </html>
-
