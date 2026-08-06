@@ -1,5 +1,7 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
+const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./src/utils/db');
 const ticketRouter = require('./src/routes/ticketRoutes');
@@ -8,6 +10,7 @@ const authRouter = require('./src/routes/authRouter');
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 app.set('trust proxy', 1);
@@ -27,12 +30,14 @@ app.use(limiter);
 app.use('/api/tickets', ticketRouter);
 app.use('/api/auth', authRouter);
 
+app.use(express.static(path.join(__dirname, 'frontend')));
+
 app.use(errorHandler); 
 
 const startServer = async () => {
     await connectDB();        
-    app.listen(6000, () => {
-        console.log('Server is running on port 6000');
+    app.listen(5000, () => {
+        console.log('Server is running on port 5000');
     });
 };
 

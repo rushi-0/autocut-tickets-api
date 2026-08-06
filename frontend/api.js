@@ -1,6 +1,4 @@
-// Centralized API helpers
-// NOTE: Backend runs on http://localhost:6000
-const API_BASE_URL = 'http://localhost:6000';
+const API_BASE_URL = '';
 
 async function requestJson(path, { method = 'GET', token = null, body = null, headers = {} } = {}){
   const h = {
