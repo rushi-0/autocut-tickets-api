@@ -109,6 +109,16 @@ exports.createTicket = async (req, res) => {
 
         const categories = await classifyTicket(description);
 
+        // --- Layer 3: AI decided this doesn't describe an identifiable issue ---
+        // Stop here entirely — no S3 upload, no DB save, no confirmation email.
+        // The 15-char/gibberish check above catches the cheapest junk; this catches
+        // real sentences that still don't describe an actual problem.
+        if (categories.length === 1 && categories[0] === 'Unclear') {
+            return res.status(400).json({
+                message: 'We couldn\'t identify a specific issue in your description. Please provide more detail about what\'s going wrong so we can route it to the right team.'
+            });
+        }
+
         let attachmentUrl = null;
         if (req.file) {
             attachmentUrl = await uploadFileToS3(req.file, `temp-${Date.now()}`);
