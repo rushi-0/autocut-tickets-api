@@ -39,7 +39,9 @@ For each issue, classify it into ONE of these categories:
 - Payment & Refunds
 - Data Privacy
 - General Inquiry
+- Unclear
 Rules:
+- Use "Unclear" ONLY when the description does not describe an identifiable issue — e.g. vague filler text, random/nonsense words, or content unrelated to a product or support request. Do not use "Unclear" just because a real issue is described briefly; a short but genuine complaint (e.g. "app keeps crashing") still gets a real category.
 - If the description contains ONE issue OR multiple related issues, return ONLY the single most appropriate category as plain text
 - ONLY split into multiple categories if the issues are completely unrelated (e.g. payment problem AND account locked)
 - If splitting, return ONLY a JSON array like: ["Payment & Refunds", "Account Issues"]
@@ -58,7 +60,15 @@ Rules:
 
 if (raw.startsWith('[')) {
 
-    const categories = JSON.parse(raw);
+    let categories = JSON.parse(raw);
+
+    if (categories.length > 1 && categories.includes('Unclear')) {
+        categories = categories.filter(c => c !== 'Unclear');
+    }
+
+    if (categories.length === 1) {
+        return categories;
+    }
 
     if (areRelated(categories)) {
         return [categories[0]];

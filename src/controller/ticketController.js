@@ -72,6 +72,27 @@ exports.createTicket = async (req, res) => {
     try {
         const { title, description } = req.body;
 
+        const trimmedDescription = (description || '').trim();
+
+        // --- Layer 1: reject obvious junk before it ever reaches the AI ---
+        // Cheap, instant, and saves an API call on input that clearly isn't a real ticket.
+        if (trimmedDescription.length < 15) {
+            return res.status(400).json({
+                message: 'Please add more detail to your description (at least 15 characters) so we can route it correctly.'
+            });
+        }
+
+        // Flags strings that are just one character repeated (e.g. "aaaaaaaaaaaaaaa")
+        // or contain no letters at all (e.g. "12345678901234", "!!!!!!!!!!!!!!!")
+        const isRepeatedChar = /^(.)\1+$/.test(trimmedDescription.replace(/\s/g, ''));
+        const hasNoLetters = !/[a-zA-Z]/.test(trimmedDescription);
+
+        if (isRepeatedChar || hasNoLetters) {
+            return res.status(400).json({
+                message: 'Your description doesn\'t look like a real issue. Please describe what happened in a sentence or two.'
+            });
+        }
+
                 const recentDuplicate = await Ticket.findOne({
             raisedBy: req.user.id,
             title,
