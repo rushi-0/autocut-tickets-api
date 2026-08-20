@@ -303,6 +303,7 @@
         btnResolve.textContent = t.status === 'done'
           ? 'Already resolved'
           : 'Mark resolved & email requester';
+        btnDelete.disabled = false;
       }catch(err){
         setMsg(modalMsg, { type:'error', text: err.message || 'Failed to load ticket.' });
       }
