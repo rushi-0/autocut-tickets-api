@@ -78,4 +78,42 @@ const sendResolutionEmail = async (ticket, userEmail, userName) => {
     console.log(`Resolution email sent to ${userEmail} for ticket ${ticket.ticketId}`);
 };
 
-module.exports = { sendTicketEmail, sendUserConfirmationEmail, sendResolutionEmail };
+let lastAlertSentAt = 0;
+const ALERT_COOLDOWN_MS = 30 * 60 * 1000;
+
+const sendClassificationFailureAlert = async (errorMessage, sampleDescription = '') => {
+    const adminEmail = process.env.ADMIN_ALERT_EMAIL;
+    if (!adminEmail) {
+        console.warn('ADMIN_ALERT_EMAIL not set — skipping classification failure alert.');
+        return;
+    }
+
+    const now = Date.now();
+    if (now - lastAlertSentAt < ALERT_COOLDOWN_MS) {
+        return;
+    }
+    lastAlertSentAt = now;
+
+    const { data, error } = await resend.emails.send({
+        from: 'Autocut Support <support@autocutsupport.online>',
+        to: adminEmail,
+        subject: `⚠️ Autocut: AI ticket classification is failing`,
+        html: `
+            <h2>AI classification failure detected</h2>
+            <p>Tickets are currently falling back to <strong>General Inquiry</strong> because the classifier call is erroring out.</p>
+            <p><strong>Error:</strong> ${escapeHtml(errorMessage)}</p>
+            ${sampleDescription ? `<p><strong>Sample ticket description that failed:</strong><br/>${escapeHtml(sampleDescription)}</p>` : ''}
+            <p>This is a common sign that the Groq model name has been deprecated/changed, the API key is invalid, or a rate limit was hit. Check Render logs and console.groq.com for details.</p>
+            <p style="color:#888;font-size:12px">You won't get another alert for this for 30 minutes, even if it keeps failing, to avoid inbox spam.</p>
+        `
+    });
+
+    if (error) {
+        console.error(`Classification failure alert email failed:`, error.message);
+        return;
+    }
+
+    console.log(`Classification failure alert sent to ${adminEmail}`);
+};
+
+module.exports = { sendTicketEmail, sendUserConfirmationEmail, sendResolutionEmail, sendClassificationFailureAlert };

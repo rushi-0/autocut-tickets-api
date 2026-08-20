@@ -1,4 +1,6 @@
 const Groq = require('groq-sdk');
+const { sendClassificationFailureAlert } = require('./mailer');
+
 const relatedGroups = [
     ['Payment & Refunds', 'Order/Delivery Issues', 'Billing'],
     ['Account Issues', 'Security Issues', 'Data Privacy'],
@@ -69,6 +71,11 @@ if (raw.startsWith('[')) {
 
     } catch (error) {
         console.error("AI Classification Error:", error.message);
+
+        sendClassificationFailureAlert(error.message, description).catch((alertErr) => {
+            console.error("Failed to send classification failure alert:", alertErr.message);
+        });
+
         return ["General Inquiry"];
     }
 };
