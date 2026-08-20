@@ -16,7 +16,10 @@
         </div>
         <h1>Raise a ticket</h1>
       </div>
-      <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      <div style="display:flex; gap:10px;">
+        <a id="adminLink" href="admin.html" class="btn ghost" style="display:none; text-decoration:none; align-items:center;">Admin</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      </div>
     </div>
 
     <div class="dash-grid">
@@ -67,11 +70,15 @@
 
   <script type="module">
     import { api } from './api.js';
-    import { clearToken, getToken, setMsg, requireAuth } from './app.js';
+    import { clearToken, getToken, setMsg, requireAuth, isStaffOrAdmin } from './app.js';
 
     requireAuth('index.html');
 
     const token = getToken();
+
+    if(isStaffOrAdmin()){
+      document.getElementById('adminLink').style.display = 'inline-flex';
+    }
 
     const btnLogout = document.getElementById('btnLogout');
     const btnCreate = document.getElementById('btnCreate');

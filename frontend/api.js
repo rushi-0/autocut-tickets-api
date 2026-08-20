@@ -83,6 +83,33 @@ const api = {
       method: 'GET',
       token
     });
+  },
+
+  getTicketById: async ({token, id}) => {
+    return requestJson(`/api/tickets/${encodeURIComponent(id)}`, {
+      method: 'GET',
+      token
+    });
+  },
+
+  updateTicket: async ({token, id, status, priority, assignedTo}) => {
+    const body = {};
+    if(status !== undefined) body.status = status;
+    if(priority !== undefined) body.priority = priority;
+    if(assignedTo !== undefined) body.assignedTo = assignedTo;
+
+    return requestJson(`/api/tickets/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      token,
+      body
+    });
+  },
+
+  deleteTicket: async ({token, id}) => {
+    return requestJson(`/api/tickets/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      token
+    });
   }
 };
 

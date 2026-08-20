@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin | Autocut Tickets</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    /* Admin-page-only additions, kept scoped here so styles.css stays reusable */
+    .admin-toolbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .admin-toolbar select, .admin-toolbar input[type="text"]{
+      width:auto;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .manifest-row.admin-row{
+      align-items:flex-start;
+      cursor: pointer;
+    }
+    .manifest-row.admin-row:hover{
+      border-color: var(--edge-strong);
+    }
+    .row-actions{
+      display:flex;
+      gap:6px;
+      flex-shrink:0;
+    }
+    .row-actions .btn{
+      padding: 6px 10px;
+      font-size: 11.5px;
+    }
+    .status-chip.done{ color: var(--teal); border-color: rgba(45,212,191,.4); }
+    .status-chip.open{ color: var(--amber); border-color: rgba(255,178,56,.4); }
+
+    /* Modal */
+    .modal-backdrop{
+      display:none;
+      position: fixed; inset:0;
+      background: rgba(5,7,10,.72);
+      z-index: 50;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+    }
+    .modal-backdrop.show{ display:flex; }
+    .modal-card{
+      width:100%;
+      max-width: 560px;
+      max-height: 86vh;
+      overflow-y:auto;
+      background: var(--surface);
+      border:1px solid var(--edge-strong);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 26px;
+      position:relative;
+    }
+    .modal-close{
+      position:absolute;
+      top:16px; right:16px;
+      background:none; border:none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor:pointer;
+      line-height:1;
+    }
+    .modal-close:hover{ color: var(--paper); }
+    .modal-id{
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .modal-title{
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight:700;
+      margin: 0 0 14px;
+    }
+    .modal-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom: 16px;
+    }
+    .modal-desc{
+      background: var(--surface-2);
+      border:1px solid var(--edge);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13.5px;
+      line-height:1.6;
+      color: var(--paper);
+      white-space: pre-wrap;
+      margin-bottom: 18px;
+    }
+    .modal-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .attachment-link{
+      display:inline-block;
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dash">
+    <div class="dash-top">
+      <div>
+        <div class="brand-mark">
+          <span class="glyph" aria-hidden="true"></span>
+          Autocut
+        </div>
+        <h1>Admin — all tickets</h1>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <a href="raise-ticket.html" class="btn ghost" style="text-decoration:none; display:inline-flex; align-items:center;">Raise a ticket</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Manifest</h2>
+        <button id="btnRefresh" class="btn ghost" type="button" style="padding:8px 12px; font-size:12.5px;">Refresh</button>
+      </div>
+
+      <div class="admin-toolbar">
+        <select id="filterStatus">
+          <option value="">All statuses</option>
+          <option value="open">Open</option>
+          <option value="done">Resolved</option>
+        </select>
+        <input id="filterSearch" type="text" placeholder="Search title…" />
+      </div>
+
+      <div id="msg" class="msg" style="margin-bottom:14px"></div>
+      <div id="list" class="manifest">
+        <div class="manifest-empty">Loading tickets…</div>
+      </div>
+    </div>
+
+    <div class="footer-note">Staff / admin view · full manifest across all users</div>
+  </div>
+
+  <!-- Ticket detail modal -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal-card">
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+      <div class="modal-id" id="modalTicketId">—</div>
+      <h3 class="modal-title" id="modalTitle">—</h3>
+
+      <div class="modal-row">
+        <span class="status-chip" id="modalStatus">—</span>
+        <span class="status-chip" id="modalCategory">—</span>
+      </div>
+
+      <div class="modal-desc" id="modalDescription">—</div>
+
+      <div id="modalAttachmentWrap" style="display:none; margin-bottom:18px;">
+        <a id="modalAttachment" href="#" target="_blank" rel="noopener" class="attachment-link">View attachment →</a>
+      </div>
+
+      <div id="modalMsg" class="msg" style="margin-bottom:14px"></div>
+
+      <div class="modal-actions">
+        <button id="btnResolve" class="btn primary" type="button">Mark resolved &amp; email requester</button>
+        <button id="btnDelete" class="btn danger" type="button">Delete ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api } from './api.js';
+    import { clearToken, getToken, setMsg, requireAuth, isStaffOrAdmin } from './app.js';
+
+    requireAuth('index.html');
+
+    if(!isStaffOrAdmin()){
+      // Not staff/admin — the backend would reject admin-only actions anyway,
+      // but bounce them to the normal ticket page instead of showing an empty admin shell.
+      window.location.href = 'raise-ticket.html';
+    }
+
+    const token = getToken();
+
+    const btnLogout = document.getElementById('btnLogout');
+    const btnRefresh = document.getElementById('btnRefresh');
+    const list = document.getElementById('list');
+    const msg = document.getElementById('msg');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterSearch = document.getElementById('filterSearch');
+
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalClose = document.getElementById('modalClose');
+    const modalTicketId = document.getElementById('modalTicketId');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalStatus = document.getElementById('modalStatus');
+    const modalCategory = document.getElementById('modalCategory');
+    const modalDescription = document.getElementById('modalDescription');
+    const modalAttachmentWrap = document.getElementById('modalAttachmentWrap');
+    const modalAttachment = document.getElementById('modalAttachment');
+    const modalMsg = document.getElementById('modalMsg');
+    const btnResolve = document.getElementById('btnResolve');
+    const btnDelete = document.getElementById('btnDelete');
+
+    let allTickets = [];
+    let currentTicketId = null;
+
+    function escapeHtml(str){
+      return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    btnLogout.addEventListener('click', () => {
+      clearToken();
+      window.location.href = 'index.html';
+    });
+
+    function renderList(){
+      const statusFilter = filterStatus.value;
+      const searchFilter = filterSearch.value.trim().toLowerCase();
+
+      const filtered = allTickets.filter(t => {
+        if(statusFilter && t.status !== statusFilter) return false;
+        if(searchFilter && !(t.title || '').toLowerCase().includes(searchFilter)) return false;
+        return true;
+      });
+
+      if(!filtered.length){
+        list.innerHTML = '<div class="manifest-empty">No tickets match this filter.</div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map(t => `
+        <div class="manifest-row admin-row" data-id="${escapeHtml(t.ticketId)}">
+          <div class="m-id">${escapeHtml(t.ticketId)}</div>
+          <div class="m-body">
+            <div class="m-title">${escapeHtml(t.title)}</div>
+            <div class="m-meta">${escapeHtml(t.category || 'Unclassified')}</div>
+          </div>
+          <span class="status-chip ${t.status === 'done' ? 'done' : 'open'}">${escapeHtml(t.status || 'open')}</span>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.admin-row').forEach(row => {
+        row.addEventListener('click', () => openModal(row.dataset.id));
+      });
+    }
+
+    async function loadTickets(){
+      list.innerHTML = '<div class="manifest-empty">Loading tickets…</div>';
+      setMsg(msg, { type:'success', text:'' });
+      try{
+        const data = await api.getTickets({ token, page:1, limit:100 });
+        allTickets = data?.tickets || [];
+        renderList();
+      }catch(err){
+        list.innerHTML = '';
+        setMsg(msg, { type:'error', text: err.message || 'Failed to load tickets.' });
+      }
+    }
+
+    btnRefresh.addEventListener('click', loadTickets);
+    filterStatus.addEventListener('change', renderList);
+    filterSearch.addEventListener('input', renderList);
+
+    async function openModal(ticketId){
+      currentTicketId = ticketId;
+      setMsg(modalMsg, { type:'success', text:'' });
+      modalTicketId.textContent = ticketId;
+      modalTitle.textContent = 'Loading…';
+      modalDescription.textContent = '';
+      modalAttachmentWrap.style.display = 'none';
+      modalBackdrop.classList.add('show');
+
+      try{
+        const data = await api.getTicketById({ token, id: ticketId });
+        const t = data.ticket;
+        modalTitle.textContent = t.title;
+        modalStatus.textContent = t.status || 'open';
+        modalStatus.className = `status-chip ${t.status === 'done' ? 'done' : 'open'}`;
+        modalCategory.textContent = t.category || 'Unclassified';
+        modalDescription.textContent = t.description || '';
+
+        if(t.attachments){
+          modalAttachment.href = t.attachments;
+          modalAttachmentWrap.style.display = 'block';
+        }
+
+        btnResolve.disabled = t.status === 'done';
+        btnResolve.textContent = t.status === 'done'
+          ? 'Already resolved'
+          : 'Mark resolved & email requester';
+      }catch(err){
+        setMsg(modalMsg, { type:'error', text: err.message || 'Failed to load ticket.' });
+      }
+    }
+
+    function closeModal(){
+      modalBackdrop.classList.remove('show');
+      currentTicketId = null;
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e) => {
+      if(e.target === modalBackdrop) closeModal();
+    });
+
+    btnResolve.addEventListener('click', async () => {
+      if(!currentTicketId) return;
+      btnResolve.disabled = true;
+      setMsg(modalMsg, { type:'success', text:'' });
+      try{
+        await api.updateTicket({ token, id: currentTicketId, status: 'done' });
+        setMsg(modalMsg, { type:'success', text:'Marked resolved — confirmation email sent to the requester.' });
+        btnResolve.textContent = 'Already resolved';
+        await loadTickets();
+      }catch(err){
+        btnResolve.disabled = false;
+        setMsg(modalMsg, { type:'error', text: err.message || 'Failed to update ticket.' });
+      }
+    });
+
+    btnDelete.addEventListener('click', async () => {
+      if(!currentTicketId) return;
+      const confirmed = window.confirm(`Delete ticket ${currentTicketId}? This cannot be undone.`);
+      if(!confirmed) return;
+
+      btnDelete.disabled = true;
+      setMsg(modalMsg, { type:'success', text:'' });
+      try{
+        await api.deleteTicket({ token, id: currentTicketId });
+        closeModal();
+        await loadTickets();
+      }catch(err){
+        btnDelete.disabled = false;
+        setMsg(modalMsg, { type:'error', text: err.message || 'Failed to delete ticket.' });
+      }
+    });
+
+    loadTickets();
+  </script>
+</body>
+</html>
